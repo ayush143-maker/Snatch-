@@ -77,6 +77,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.AnnotatedString
@@ -312,6 +313,9 @@ private operator fun PaddingValues.plus(other: PaddingValues): PaddingValues {
 
 private const val HeaderSpacingDp = 28
 
+/** Single horizontal gutter shared by header, filters, list and cards. */
+private val ScreenGutter = 20.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadPageImplV2(
@@ -344,7 +348,7 @@ fun DownloadPageImplV2(
 
     LaunchedEffect(selectedTask, taskDownloadStateMap.size) {
         if (!taskDownloadStateMap.contains(selectedTask)) {
-            selectedTask == null
+            selectedTask = null
         }
     }
 
@@ -383,11 +387,27 @@ fun DownloadPageImplV2(
             CompositionLocalProvider(LocalOverscrollFactory provides null) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Spacer(Modifier.height(with(LocalDensity.current) { headerOffset.toDp() }))
-                    Header(onMenuOpen = onMenuOpen, modifier = Modifier.padding(horizontal = 16.dp))
+                    Header(
+                        onMenuOpen = onMenuOpen,
+                        modifier = Modifier.padding(start = ScreenGutter, end = ScreenGutter - 12.dp),
+                    )
+                    if (windowWidthSizeClass != WindowWidthSizeClass.Expanded) {
+                        Text(
+                            text = stringResource(R.string.nav_queue),
+                            style = MaterialTheme.typography.headlineLarge,
+                            modifier =
+                                Modifier.padding(
+                                    start = ScreenGutter,
+                                    end = ScreenGutter,
+                                    top = 4.dp,
+                                    bottom = 16.dp,
+                                ),
+                        )
+                    }
                     SelectionGroupRow(
                         modifier =
                             Modifier.horizontalScroll(rememberScrollState())
-                                .padding(horizontal = 20.dp)
+                                .padding(horizontal = ScreenGutter)
                     ) {
                         Filter.entries.forEach { filter ->
                             SelectionGroupItem(
@@ -431,7 +451,7 @@ fun DownloadPageImplV2(
                     columns = GridCells.Adaptive(240.dp),
                     contentPadding =
                         windowInsetsPadding +
-                            PaddingValues(start = 20.dp, end = 20.dp, bottom = 80.dp),
+                            PaddingValues(start = ScreenGutter, end = ScreenGutter, bottom = 80.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
                     if (filteredMap.isNotEmpty()) {
@@ -446,7 +466,6 @@ fun DownloadPageImplV2(
                                 audioCount = filteredMap.size - videoCount,
                                 isGridView = isGridView,
                                 onToggleView = { isGridView = !isGridView },
-                                onShowMenu = { context.makeToast("Not implemented yet!") },
                             )
                         }
                     }
@@ -487,7 +506,7 @@ fun DownloadPageImplV2(
                             span = { GridItemSpan(maxLineSpan) },
                         ) { (task, state) ->
                             VideoListItem(
-                                modifier = Modifier.padding(bottom = 16.dp),
+                                modifier = Modifier.padding(bottom = 20.dp),
                                 viewState = state.viewState,
                                 stateIndicator = {
                                     ListItemStateText(
@@ -549,8 +568,13 @@ fun Header(modifier: Modifier = Modifier, onMenuOpen: () -> Unit = {}) {
 
 @Composable
 private fun HeaderCompact(modifier: Modifier = Modifier, onMenuOpen: () -> Unit) {
-
     Row(modifier = modifier.height(64.dp), verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            painter = painterResource(R.drawable.ic_seal_logo),
+            contentDescription = stringResource(R.string.app_name),
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(modifier = Modifier.weight(1f))
         IconButton(onClick = onMenuOpen, modifier = Modifier) {
             Icon(
                 imageVector = Icons.Outlined.Menu,
@@ -558,15 +582,6 @@ private fun HeaderCompact(modifier: Modifier = Modifier, onMenuOpen: () -> Unit)
                 modifier = Modifier,
             )
         }
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            stringResource(R.string.download_queue),
-            style =
-                MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
-        )
     }
 }
 
@@ -668,7 +683,7 @@ fun SubHeader(
     audioCount: Int = 0,
     isGridView: Boolean = true,
     onToggleView: () -> Unit,
-    onShowMenu: () -> Unit,
+    onShowMenu: (() -> Unit)? = null,
 ) {
     val text = buildString {
         if (videoCount > 0) {
@@ -687,7 +702,7 @@ fun SubHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = text, style = MaterialTheme.typography.labelLarge)
@@ -709,6 +724,7 @@ fun SubHeader(
             )
         }
 
+        if (onShowMenu != null) {
         Spacer(Modifier.width(4.dp))
 
         FilledIconButton(
@@ -721,6 +737,7 @@ fun SubHeader(
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
             )
+        }
         }
     }
 }

@@ -289,7 +289,6 @@ private fun CardImage(modifier: Modifier = Modifier, thumbnailModel: Any? = null
         AsyncImageImpl(
             modifier =
                 modifier
-                    .padding()
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f, matchHeightConstraintsFirst = true),
             model = thumbnailModel,
@@ -300,7 +299,6 @@ private fun CardImage(modifier: Modifier = Modifier, thumbnailModel: Any? = null
         Surface(
             modifier =
                 modifier
-                    .padding()
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f, matchHeightConstraintsFirst = true),
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
