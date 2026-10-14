@@ -450,4 +450,7 @@
         <item quantity="one">%d audio</item>
         <item quantity="other">%d audios</item>
     </plurals>
+    <string name="nav_queue">Queue</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_commands">Commands</string>
 </resources>
