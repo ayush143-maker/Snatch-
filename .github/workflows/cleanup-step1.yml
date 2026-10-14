@@ -1,0 +1,50 @@
+name: Cleanup Step 1 (dead files and translations)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Remove dead V1 files
+        run: |
+          S=app/src/main/java/com/junkfood/seal
+          for f in \
+            "$S/ui/component/VideoCard.kt" \
+            "$S/ui/page/WelcomeDialog.kt" \
+            "$S/ui/page/download/DownloadPage.kt" \
+            "$S/ui/page/download/MeteredNetworkDialog.kt" \
+            "$S/ui/svg/VectorPreviews.kt" \
+            "$S/ui/svg/drawablevectors/VideoFiles.kt"
+          do
+            if [ -f "$f" ]; then git rm -q "$f"; else echo "already missing: $f"; fi
+          done
+
+      - name: Remove translation folders (values-xx)
+        run: |
+          find app/src/main/res -maxdepth 1 -type d -regextype posix-extended \
+            -regex '.*/values-[a-z]{2,3}(-r[A-Z]{2})?' -exec git rm -rq {} +
+          echo "values folders left:"
+          ls app/src/main/res | grep '^values' || true
+
+      - name: Safety check (nothing should still reference removed code)
+        run: |
+          if grep -rnE "MeteredNetworkDialog|WelcomeDialog|VectorPreviews|DownloadPageImpl|VideoCard\(|ErrorMessage\(" app/src --include=*.kt; then
+            echo "Found references to removed code, stopping."
+            exit 1
+          fi
+
+      - name: Commit to a new branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b snatch-step1
+          git commit -m "Step 1: remove 6 dead V1 files and 61 translation folders"
+          git push origin snatch-step1
