@@ -3,12 +3,17 @@ package com.junkfood.seal.ui.page
 import android.webkit.CookieManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -97,13 +102,27 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
         }
     }
 
-    if (sheetState is DownloadDialogViewModel.SheetState.Configure) {
-        if (navController.currentDestination?.route != Route.HOME) {
-            navController.popBackStack(route = Route.HOME, inclusive = false, saveState = true)
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+
+    // Side effect: must not run during composition
+    LaunchedEffect(sheetState, currentRoute) {
+        if (sheetState is DownloadDialogViewModel.SheetState.Configure) {
+            if (navController.currentDestination?.route != Route.HOME) {
+                navController.popBackStack(route = Route.HOME, inclusive = false, saveState = true)
+            }
         }
     }
 
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val showBottomBar = windowWidth == WindowWidthSizeClass.Compact && currentRoute in TopDestinations
+
+    val onNavigateToTopRoute: (String) -> Unit = {
+        if (currentRoute != it) {
+            navController.navigate(it) {
+                launchSingleTop = true
+                popUpTo(route = Route.HOME)
+            }
+        }
+    }
     var currentTopDestination by rememberSaveable { mutableStateOf(currentRoute) }
 
     LaunchedEffect(currentRoute) {
@@ -121,25 +140,25 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
             showQuickSettings = true,
             gesturesEnabled = currentRoute == Route.HOME,
             onDismissRequest = { drawerState.close() },
-            onNavigateToRoute = {
-                if (currentRoute != it) {
-                    navController.navigate(it) {
-                        launchSingleTop = true
-                        popUpTo(route = Route.HOME)
-                    }
-                }
-            },
+            onNavigateToRoute = onNavigateToTopRoute,
             footer = {
                 Text(
-                    appName + "\n" + versionReport + "\n" + currentRoute,
+                    appName + "\n" + versionReport,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 12.dp),
                 )
             },
         ) {
+            Column(modifier = Modifier.fillMaxSize()) {
             NavHost(
-                modifier = Modifier.align(Alignment.Center),
+                modifier =
+                    Modifier.weight(1f)
+                        .fillMaxWidth()
+                        .then(
+                            if (showBottomBar) Modifier.consumeWindowInsets(WindowInsets.navigationBars)
+                            else Modifier
+                        ),
                 navController = navController,
                 startDestination = Route.HOME,
             ) {
@@ -176,6 +195,10 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
                     },
                     cookiesViewModel = cookiesViewModel,
                 )
+            }
+            if (showBottomBar) {
+                SealBottomBar(currentRoute = currentRoute, onNavigateToRoute = onNavigateToTopRoute)
+            }
             }
 
             AppUpdater()
@@ -223,9 +246,6 @@ fun NavGraphBuilder.settingsGraph(
         }
         animatedComposable(Route.INTERACTION) { InteractionPreferencePage(onBack = onNavigateBack) }
         animatedComposable(Route.LANGUAGES) { LanguagePage { onNavigateBack() } }
-        animatedComposable(Route.DOWNLOAD_DIRECTORY) {
-            DownloadDirectoryPreferences { onNavigateBack() }
-        }
         animatedComposable(Route.TEMPLATE) {
             TemplateListPage(onNavigateBack = onNavigateBack) {
                 onNavigateTo(Route.TEMPLATE_EDIT id it)
