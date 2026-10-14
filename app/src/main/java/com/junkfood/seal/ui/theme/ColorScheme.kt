@@ -156,7 +156,8 @@ data class FixedColorRoles(
     }
 }
 
-const val DEFAULT_SEED_COLOR = 0xa3d48d
+// Brand blue from the Seal logo; used as the dark-theme seed and the light-theme brand check
+const val DEFAULT_SEED_COLOR = 0x2638FA
 
 /**
  * @return a [Color] generated using [Hct] algorithm, harmonized with `primary` color

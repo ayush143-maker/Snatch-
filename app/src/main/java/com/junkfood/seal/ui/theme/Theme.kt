@@ -15,7 +15,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextDirection
 import com.google.android.material.color.MaterialColors
+import com.junkfood.seal.ui.common.LocalDynamicColorSwitch
 import com.junkfood.seal.ui.common.LocalFixedColorRoles
+import com.junkfood.seal.ui.common.LocalSeedColor
 import com.kyant.monet.LocalTonalPalettes
 import com.kyant.monet.dynamicColorScheme
 
@@ -57,8 +59,13 @@ fun SealTheme(
         }
     }
 
+    // Default look (light, no dynamic colour, untouched seed) uses the editorial brand palette.
+    val useBrandLight =
+        !darkTheme && !LocalDynamicColorSwitch.current && LocalSeedColor.current == DEFAULT_SEED_COLOR
+
     val colorScheme =
-        dynamicColorScheme(!darkTheme).run {
+        if (useBrandLight) SealBrandLightColorScheme
+        else dynamicColorScheme(!darkTheme).run {
             if (isHighContrastModeEnabled && darkTheme)
                 copy(
                     surface = Color.Black,
